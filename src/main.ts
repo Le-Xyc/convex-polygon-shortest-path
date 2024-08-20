@@ -34,9 +34,10 @@ function solve(
     } else {
       let message = `Case #${testCaseNumber++}: `;
       try {
-        message += polygon
-          .findShortestPath(...(Point.fromString(line) as [Point, Point]))
-          .join(' -> ');
+        const path = polygon.findShortestPath(
+          ...(Point.fromString(line) as [Point, Point]),
+        );
+        message += path.join(' -> ');
       } catch (error) {
         message += error.message;
       }
