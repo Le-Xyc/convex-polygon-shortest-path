@@ -30,8 +30,7 @@ function solve(
         const shortestPath = polygon.findShortestPath(
           ...(Point.fromString(line) as [Point, Point]),
         );
-        console.log(new ConvexPolygon(shortestPath));
-        writeMessage(`Length of the shortest path is ${shortestPath}.`);
+        shortestPath.forEach((point) => writeMessage(point));
       } catch (error) {
         writeMessage(error.message);
       }
