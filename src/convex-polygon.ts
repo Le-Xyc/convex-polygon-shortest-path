@@ -52,7 +52,7 @@ export class ConvexPolygon {
    * @param {Point} p2 - The ending point.
    * @param {number} closestIndex - The index of the vertex closest to p1.
    * @param {boolean} isPositiveSign - The sign indicating the direction of the path.
-   * @param {boolean} clockwise - Whether the path should be calculated in a clockwise direction.
+   * @param {boolean} isClockwise - Whether the path should be calculated in a clockwise direction.
    * @returns {PathCheck} An object containing the path information.
    */
   private findPath(
@@ -60,7 +60,7 @@ export class ConvexPolygon {
     p2: Point,
     closestIndex: number,
     isPositiveSign: boolean,
-    clockwise: boolean,
+    isClockwise: boolean,
   ): PathCheck {
     const points = this.points;
     const startIndex = closestIndex;
@@ -70,19 +70,23 @@ export class ConvexPolygon {
     let product;
 
     while (true) {
-      const nextIndex = this.getVertexIndex(currentIndex, 1, clockwise);
+      const nextIndex = this.getVertexIndex(currentIndex, 1, isClockwise);
       product = Point.calculateVectorProduct(
         points[currentIndex],
         p2,
         points[currentIndex],
         points[nextIndex],
       );
-      if (isPositiveSign ? product >= 0 : product <= 0) {
+
+      if (
+        (isClockwise && (isPositiveSign ? product >= 0 : product <= 0)) ||
+        (!isClockwise && (isPositiveSign ? product <= 0 : product >= 0))
+      ) {
         distance += Point.calculateDistance(points[currentIndex], p2);
         finishIndex = currentIndex;
         break;
       } else {
-        if (currentIndex !== (clockwise ? points.length - 1 : 0)) {
+        if (currentIndex !== (isClockwise ? points.length - 1 : 0)) {
           distance += Point.calculateDistance(
             points[currentIndex],
             points[nextIndex],
@@ -125,8 +129,8 @@ export class ConvexPolygon {
       );
 
       if (
-        (isPositiveSign && (isClockwise ? product > 0 : product < 0)) ||
-        (!isPositiveSign && (isClockwise ? product < 0 : product > 0))
+        (isClockwise && (isPositiveSign ? product > 0 : product < 0)) ||
+        (!isClockwise && (isPositiveSign ? product < 0 : product > 0))
       ) {
         break;
       } else {
@@ -142,8 +146,8 @@ export class ConvexPolygon {
     );
 
     if (
-      (isPositiveSign && (isClockwise ? product <= 0 : product >= 0)) ||
-      (!isPositiveSign && (isClockwise ? product >= 0 : product <= 0))
+      (isClockwise && (isPositiveSign ? product <= 0 : product >= 0)) ||
+      (!isClockwise && (isPositiveSign ? product >= 0 : product <= 0))
     ) {
       return { isPossible: true };
     }
@@ -158,9 +162,10 @@ export class ConvexPolygon {
         p1,
         points[initialClosestIndex],
       );
+
       if (
-        (isPositiveSign && (isClockwise ? product <= 0 : product >= 0)) ||
-        (!isPositiveSign && (isClockwise ? product >= 0 : product <= 0))
+        (isClockwise && (isPositiveSign ? product <= 0 : product >= 0)) ||
+        (!isClockwise && (isPositiveSign ? product >= 0 : product <= 0))
       ) {
         return { isPossible: true };
       }
