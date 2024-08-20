@@ -1,6 +1,12 @@
 import { Line } from './line';
 import { Point } from './point';
 
+type PathCheck = {
+  startIndex: number;
+  finishIndex: number;
+  distance: number;
+};
+
 export class ConvexPolygon {
   private points: Point[];
 
@@ -20,129 +26,33 @@ export class ConvexPolygon {
     return points.length > 2;
   }
 
-  private isConvex(points: Point[]) {
+  private isConvex(points: Point[]): boolean {
+    let lastSign = 0;
     for (let i = 0; i < points.length; i++) {
-      const ix1 = i;
-      const ix2 = (i + 1) % points.length;
-      const ix3 = (i + 2) % points.length;
-      const line = new Line(points[ix1], points[ix2]);
+      const p1 = points[i];
+      const p2 = points[(i + 1) % points.length];
+      const p3 = points[(i + 2) % points.length];
 
-      const initialSign = points[ix3].calculatePointLineRelation(line);
+      const crossProduct = Point.calculateVectorProduct(p1, p2, p1, p3);
+      const currentSign = Math.sign(crossProduct);
 
-      for (
-        let j = (ix3 + 1) % points.length;
-        j != ix1;
-        j = (j + 1) % points.length
-      ) {
-        if (j == ix2) continue;
-
-        const currentSign = points[j].calculatePointLineRelation(line);
-
-        if (
-          (initialSign > 0 && currentSign < 0) ||
-          (initialSign < 0 && currentSign > 0)
-        ) {
-          return false;
-        }
+      if (lastSign != 0 && currentSign != lastSign) {
+        return false;
       }
+
+      lastSign = currentSign;
     }
 
     return true;
   }
 
-  findShortestPath(p1: Point, p2: Point): Point[] {
-    const internalCheckP1 = this.isPointInternal(p1);
-    if (internalCheckP1.isInternal) {
-      throw new Error('The first point is inside the polygon.');
-    }
-
-    const internalCheckP2 = this.isPointInternal(p2);
-    if (internalCheckP2.isInternal) {
-      throw new Error('The second point is inside the polygon.');
-    }
-
-    const points = this.points;
-    const initialClosestIndex = internalCheckP1.closestIndex;
-    const isPositiveSign =
-      Point.calculateVectorProduct(
-        points[initialClosestIndex],
-        points[this.getVertexIndex(initialClosestIndex, 1, true)],
-        points[this.getVertexIndex(initialClosestIndex, 1, true)],
-        points[this.getVertexIndex(initialClosestIndex, 2, true)],
-      ) > 0;
-
-    const directPathCheckClockwise = this.isDirectPathPossible(
-      p1,
-      p2,
-      initialClosestIndex,
-      isPositiveSign,
-      true,
-    );
-    if (directPathCheckClockwise.isPossible) {
-      return [p1, p2];
-    }
-
-    const directPathCheckCounterClockwise = this.isDirectPathPossible(
-      p1,
-      p2,
-      initialClosestIndex,
-      isPositiveSign,
-      false,
-    );
-    if (directPathCheckCounterClockwise.isPossible) {
-      return [p1, p2];
-    }
-
-    const closestClockwiseIndex =
-      directPathCheckClockwise.closestVertexIndex as number;
-    const closestCounterClockwiseIndex =
-      directPathCheckCounterClockwise.closestVertexIndex as number;
-
-    const clockwisePathCheck = this.findPath(
-      p1,
-      p2,
-      closestClockwiseIndex,
-      isPositiveSign,
-      true,
-    );
-    const counterClockwisePathCheck = this.findPath(
-      p1,
-      p2,
-      closestCounterClockwiseIndex,
-      isPositiveSign,
-      false,
-    );
-
-    const result = [p1];
-    const isClockwiseWayShorter =
-      clockwisePathCheck.distance < counterClockwisePathCheck.distance;
-
-    const startIndex = (
-      isClockwiseWayShorter ? clockwisePathCheck : counterClockwisePathCheck
-    ).startIndex;
-
-    const finishIndex = (
-      isClockwiseWayShorter ? clockwisePathCheck : counterClockwisePathCheck
-    ).finishIndex;
-
-    for (
-      let i = startIndex;
-      i !== finishIndex;
-      i = this.getVertexIndex(i, 1, isClockwiseWayShorter)
-    ) {
-      result.push(points[i]);
-    }
-
-    return [...result, points[finishIndex], p2];
-  }
-
-  findPath(
+  private findPath(
     p1: Point,
     p2: Point,
     closestIndex: number,
     isPositiveSign: boolean,
     clockwise: boolean,
-  ) {
+  ): PathCheck {
     const points = this.points;
     const startIndex = closestIndex;
     let finishIndex = closestIndex;
@@ -176,7 +86,7 @@ export class ConvexPolygon {
     return { startIndex, finishIndex, distance };
   }
 
-  isDirectPathPossible(
+  private isDirectPathPossible(
     p1: Point,
     p2: Point,
     initialClosestIndex: number,
@@ -241,7 +151,10 @@ export class ConvexPolygon {
     return { isPossible: false, closestVertexIndex: closestIndex };
   }
 
-  isPointInternal(point: Point): { isInternal: boolean; closestIndex: number } {
+  private isPointInternal(point: Point): {
+    isInternal: boolean;
+    closestIndex: number;
+  } {
     const distances = this.points.map((p) => p.calculateDistance(point));
     const closestIndex = distances.indexOf(Math.min(...distances));
     const closestMinusIndex =
@@ -266,7 +179,7 @@ export class ConvexPolygon {
     return { isInternal: b1 > 0 && b2 > 0, closestIndex };
   }
 
-  getVertexIndex(
+  private getVertexIndex(
     currentIndex: number,
     offset: number,
     clockwise: boolean,
@@ -276,5 +189,74 @@ export class ConvexPolygon {
     } else {
       return (currentIndex - offset + this.points.length) % this.points.length;
     }
+  }
+
+  findShortestPath(p1: Point, p2: Point): Point[] {
+    const internalCheckP1 = this.isPointInternal(p1);
+    if (internalCheckP1.isInternal) {
+      throw new Error('The first point is inside the polygon.');
+    }
+
+    const internalCheckP2 = this.isPointInternal(p2);
+    if (internalCheckP2.isInternal) {
+      throw new Error('The second point is inside the polygon.');
+    }
+
+    const points = this.points;
+    const initialClosestIndex = internalCheckP1.closestIndex;
+    const isPositiveSign =
+      Point.calculateVectorProduct(
+        points[initialClosestIndex],
+        points[this.getVertexIndex(initialClosestIndex, 1, true)],
+        points[this.getVertexIndex(initialClosestIndex, 1, true)],
+        points[this.getVertexIndex(initialClosestIndex, 2, true)],
+      ) > 0;
+
+    const pathChecks: PathCheck[] = [];
+
+    for (const isClockwise of [true, false]) {
+      const directPathCheck = this.isDirectPathPossible(
+        p1,
+        p2,
+        initialClosestIndex,
+        isPositiveSign,
+        isClockwise,
+      );
+
+      if (directPathCheck.isPossible) {
+        return [p1, p2];
+      }
+
+      const closestIndex = directPathCheck.closestVertexIndex as number;
+
+      pathChecks.push(
+        this.findPath(p1, p2, closestIndex, isPositiveSign, isClockwise),
+      );
+    }
+
+    const clockwisePathCheck = pathChecks[0];
+    const counterClockwisePathCheck = pathChecks[1];
+    const result = [p1];
+
+    const isClockwiseWayShorter =
+      clockwisePathCheck.distance < counterClockwisePathCheck.distance;
+
+    const startIndex = (
+      isClockwiseWayShorter ? clockwisePathCheck : counterClockwisePathCheck
+    ).startIndex;
+
+    const finishIndex = (
+      isClockwiseWayShorter ? clockwisePathCheck : counterClockwisePathCheck
+    ).finishIndex;
+
+    for (
+      let i = startIndex;
+      i !== finishIndex;
+      i = this.getVertexIndex(i, 1, isClockwiseWayShorter)
+    ) {
+      result.push(points[i]);
+    }
+
+    return [...result, points[finishIndex], p2];
   }
 }
