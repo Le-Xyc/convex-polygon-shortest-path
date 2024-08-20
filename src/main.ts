@@ -44,9 +44,9 @@ function solve(
 
 function main() {
   const lineReader = readline.createInterface({
-    input: fs.createReadStream('input.txt'),
+    input: fs.createReadStream('data/input.txt'),
   });
-  const outputStream = fs.createWriteStream('output.txt');
+  const outputStream = fs.createWriteStream('data/output.txt');
 
   solve(lineReader, outputStream);
 }
