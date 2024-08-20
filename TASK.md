@@ -7,7 +7,7 @@ This task involves developing a program to find the shortest path between two po
 ## Input
 
 The input file must adhere to the following format:
-- The first `n+1` lines contain the coordinates of the polygon's vertices, with the `(n+1)`th line repeating the first to close the polygon.
+- The first `n+1` lines contain the coordinates of the polygon's vertices, with the `(n+1)`-th line repeating the first to close the polygon.
 - Subsequent lines should contain four numbers each, representing two points (`x1 y1 x2 y2`), for which the shortest path is to be determined.
 
 Whitespaces between and around numbers are ignored.
@@ -31,12 +31,12 @@ For each test case, output one line containing `Case #x: y`, where `x` is the te
 10 10       
 10 0      
 0 0          
--5 5 5 0
-2 3 10 11
+-5 5 5 0      
+2 3 10 11       
 0 0 15 15
 
 ### Answer
-Case #1: (-5, 5) -> (0, 0) -> (5, 0)
-Case #2: The first point is inside the polygon.
+Case #1: (-5, 5) -> (0, 0) -> (5, 0)      
+Case #2: The first point is inside the polygon.     
 Case #3: (0, 0) -> (0, 10) -> (15, 15)
 
