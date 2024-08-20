@@ -14,6 +14,7 @@ function solve(
 ): void {
   const points: Point[] = [];
   let polygon: ConvexPolygon;
+  let testCaseNumber = 1;
   const writeMessage = (message: any) => outputStream.write(message + '\n');
 
   lineReader.on('line', (line) => {
@@ -31,14 +32,15 @@ function solve(
         points.push(point);
       }
     } else {
+      let message = `Case #${testCaseNumber++}: `;
       try {
-        const shortestPath = polygon.findShortestPath(
-          ...(Point.fromString(line) as [Point, Point]),
-        );
-        shortestPath.forEach((point) => writeMessage(point));
+        message += polygon
+          .findShortestPath(...(Point.fromString(line) as [Point, Point]))
+          .join(' -> ');
       } catch (error) {
-        writeMessage(error.message);
+        message += error.message;
       }
+      writeMessage(message);
     }
   });
 
