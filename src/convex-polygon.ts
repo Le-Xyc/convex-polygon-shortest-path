@@ -46,6 +46,15 @@ export class ConvexPolygon {
     return true;
   }
 
+  /**
+   * Finds the path around the polygon from point p1 to p2.
+   * @param {Point} p1 - The starting point.
+   * @param {Point} p2 - The ending point.
+   * @param {number} closestIndex - The index of the vertex closest to p1.
+   * @param {boolean} isPositiveSign - The sign indicating the direction of the path.
+   * @param {boolean} clockwise - Whether the path should be calculated in a clockwise direction.
+   * @returns {PathCheck} An object containing the path information.
+   */
   private findPath(
     p1: Point,
     p2: Point,
@@ -86,19 +95,28 @@ export class ConvexPolygon {
     return { startIndex, finishIndex, distance };
   }
 
+  /**
+   * Determines if a direct path from p1 to p2 is possible without crossing the polygon.
+   * @param {Point} p1 - The starting point.
+   * @param {Point} p2 - The ending point.
+   * @param {number} initialClosestIndex - The initial index of the vertex closest to p1.
+   * @param {boolean} isPositiveSign - The sign indicating the direction of the path.
+   * @param {boolean} isClockwise - Whether the path should be calculated in a clockwise direction.
+   * @returns {{ isPossible: boolean; closestVertexIndex?: number }} An object indicating if a direct path is possible and the index of the closest vertex.
+   */
   private isDirectPathPossible(
     p1: Point,
     p2: Point,
     initialClosestIndex: number,
     isPositiveSign: boolean,
-    clockwise: boolean,
+    isClockwise: boolean,
   ): { isPossible: boolean; closestVertexIndex?: number } {
     let product;
     const points = this.points;
 
     let closestIndex = initialClosestIndex;
     while (true) {
-      const nextIndex = this.getVertexIndex(closestIndex, 1, clockwise);
+      const nextIndex = this.getVertexIndex(closestIndex, 1, isClockwise);
       product = Point.calculateVectorProduct(
         p1,
         points[closestIndex],
@@ -107,8 +125,8 @@ export class ConvexPolygon {
       );
 
       if (
-        (isPositiveSign && (clockwise ? product > 0 : product < 0)) ||
-        (!isPositiveSign && (clockwise ? product < 0 : product > 0))
+        (isPositiveSign && (isClockwise ? product > 0 : product < 0)) ||
+        (!isPositiveSign && (isClockwise ? product < 0 : product > 0))
       ) {
         break;
       } else {
@@ -124,8 +142,8 @@ export class ConvexPolygon {
     );
 
     if (
-      (isPositiveSign && (clockwise ? product <= 0 : product >= 0)) ||
-      (!isPositiveSign && (clockwise ? product >= 0 : product <= 0))
+      (isPositiveSign && (isClockwise ? product <= 0 : product >= 0)) ||
+      (!isPositiveSign && (isClockwise ? product >= 0 : product <= 0))
     ) {
       return { isPossible: true };
     }
@@ -141,8 +159,8 @@ export class ConvexPolygon {
         points[initialClosestIndex],
       );
       if (
-        (isPositiveSign && (clockwise ? product <= 0 : product >= 0)) ||
-        (!isPositiveSign && (clockwise ? product >= 0 : product <= 0))
+        (isPositiveSign && (isClockwise ? product <= 0 : product >= 0)) ||
+        (!isPositiveSign && (isClockwise ? product >= 0 : product <= 0))
       ) {
         return { isPossible: true };
       }
@@ -151,6 +169,11 @@ export class ConvexPolygon {
     return { isPossible: false, closestVertexIndex: closestIndex };
   }
 
+  /**
+   * Checks if a point is inside the polygon.
+   * @param {Point} point - The point to check.
+   * @returns {{ isInternal: boolean; closestIndex: number }} An object indicating if the point is internal and the index of the closest vertex.
+   */
   private isPointInternal(point: Point): {
     isInternal: boolean;
     closestIndex: number;
@@ -179,18 +202,32 @@ export class ConvexPolygon {
     return { isInternal: b1 > 0 && b2 > 0, closestIndex };
   }
 
+  /**
+   * Calculates the index of a vertex based on the current index and the direction.
+   * @param {number} currentIndex - The current vertex index.
+   * @param {number} offset - The offset to apply to the index.
+   * @param {boolean} isClockwise - Whether the index should be calculated in a clockwise direction.
+   * @returns {number} The calculated vertex index.
+   */
   private getVertexIndex(
     currentIndex: number,
     offset: number,
-    clockwise: boolean,
+    isClockwise: boolean,
   ): number {
-    if (clockwise) {
+    if (isClockwise) {
       return (currentIndex + offset) % this.points.length;
     } else {
       return (currentIndex - offset + this.points.length) % this.points.length;
     }
   }
 
+  /**
+   * Finds the shortest path between two points outside the polygon without crossing it.
+   * @param {Point} p1 - The starting point.
+   * @param {Point} p2 - The ending point.
+   * @returns {Point[]} An array of points representing the shortest path.
+   * @throws Will throw an error if either point is inside the polygon.
+   */
   findShortestPath(p1: Point, p2: Point): Point[] {
     const internalCheckP1 = this.isPointInternal(p1);
     if (internalCheckP1.isInternal) {

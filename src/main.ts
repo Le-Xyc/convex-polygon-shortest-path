@@ -3,6 +3,11 @@ import * as readline from 'readline';
 import { Point } from './point';
 import { ConvexPolygon } from './convex-polygon';
 
+/**
+ * Processes the input file to find the shortest path around a convex polygon.
+ * @param {readline.Interface} lineReader - A readline interface for reading the input file.
+ * @param {fs.WriteStream} outputStream - A write stream for writing to the output file.
+ */
 function solve(
   lineReader: readline.Interface,
   outputStream: fs.WriteStream,

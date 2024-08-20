@@ -1,5 +1,8 @@
 import { Line } from './line';
 
+/**
+ * Represents a point in a two-dimensional space.
+ */
 export class Point {
   readonly x: number;
   readonly y: number;
@@ -15,6 +18,11 @@ export class Point {
     return `${this.x} ${this.y}`;
   }
 
+  /**
+   * Creates point or points from a string representation depending on a string.
+   * @param {string} line - The string containing point coordinates.
+   * @returns {Point | Point[]} A single point or an array of points.
+   */
   static fromString(line: string): Point | Point[] {
     const numbers = line.split(/\s+/).map(Number);
     const points: Point[] = [];
@@ -57,6 +65,14 @@ export class Point {
     return line.a * this.x + line.b * this.y + line.c;
   }
 
+  /**
+   * Calculates the vector product of two vectors defined by four points.
+   * @param {Point} p11 - The starting point of the first vector.
+   * @param {Point} p12 - The ending point of the first vector.
+   * @param {Point} p21 - The starting point of the second vector.
+   * @param {Point} p22 - The ending point of the second vector.
+   * @returns {number} The scalar value representing the vector product of the two vectors.
+   */
   static calculateVectorProduct(
     p11: Point,
     p12: Point,
