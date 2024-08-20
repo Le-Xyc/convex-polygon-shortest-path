@@ -11,6 +11,10 @@ export class Point {
     this.y = y ?? 0;
   }
 
+  toString(): string {
+    return `${this.x} ${this.y}`;
+  }
+
   static fromString(line: string): Point | Point[] {
     const numbers = line.split(/\s+/).map(Number);
     const points: Point[] = [];
