@@ -61,148 +61,184 @@ export class ConvexPolygon {
       throw new Error('The second point is inside the polygon.');
     }
 
-    let product;
     const points = this.points;
-    const ixPlus = (ix: number, plusIx: number) =>
-      (ix + plusIx) % points.length;
-    const ixMinus = (ix: number, minusIx: number) =>
-      (ix - minusIx + points.length) % points.length;
-
-    const i = internalCheckP1.closestIndex;
-    const positiveSign =
+    const initialClosestIndex = internalCheckP1.closestIndex;
+    const isPositiveSign =
       Point.calculateVectorProduct(
-        points[i],
-        points[ixPlus(i, 1)],
-        points[ixPlus(i, 1)],
-        points[ixPlus(i, 2)],
+        points[initialClosestIndex],
+        points[this.getVertexIndex(initialClosestIndex, 1, true)],
+        points[this.getVertexIndex(initialClosestIndex, 1, true)],
+        points[this.getVertexIndex(initialClosestIndex, 2, true)],
       ) > 0;
 
-    let j = i;
-    while (true) {
-      product = Point.calculateVectorProduct(
-        p1,
-        points[j],
-        points[j],
-        points[ixPlus(j, 1)],
-      );
-      if (positiveSign ? product > 0 : product < 0) {
-        break;
-      } else {
-        j = ixPlus(j, 1);
-      }
-    }
-
-    product = Point.calculateVectorProduct(p1, points[j], points[j], p2);
-    if (positiveSign ? product <= 0 : product >= 0) {
+    const directPathCheckClockwise = this.isDirectPathPossible(
+      p1,
+      p2,
+      initialClosestIndex,
+      isPositiveSign,
+      true,
+    );
+    if (directPathCheckClockwise.isPossible) {
       return [p1, p2];
     }
 
-    if (
-      Point.calculateDistance(p1, p2) <= Point.calculateDistance(p1, points[j])
-    ) {
-      product = Point.calculateVectorProduct(p1, p2, p1, points[i]);
-      if (positiveSign ? product <= 0 : product >= 0) {
-        return [p1, p2];
-      }
-    }
-
-    let firstWayStartIx = j;
-    let firstWayLastIx;
-    let firstWayLength = Point.calculateDistance(p1, points[j]);
-
-    while (true) {
-      product = Point.calculateVectorProduct(
-        points[j],
-        p2,
-        points[j],
-        points[ixPlus(j, 1)],
-      );
-      if (positiveSign ? product >= 0 : product <= 0) {
-        firstWayLength += Point.calculateDistance(points[j], p2);
-        firstWayLastIx = j;
-        break;
-      } else {
-        if (j !== points.length - 1) {
-          firstWayLength += Point.calculateDistance(points[j], points[j + 1]);
-        }
-        j = ixPlus(j, 1);
-      }
-    }
-
-    j = i;
-    while (true) {
-      product = Point.calculateVectorProduct(
-        p1,
-        points[j],
-        points[j],
-        points[ixMinus(j, 1)],
-      );
-      if (positiveSign ? product < 0 : product > 0) {
-        break;
-      } else {
-        j = ixMinus(j, 1);
-      }
-    }
-
-    product = Point.calculateVectorProduct(p1, points[j], points[j], p2);
-    if (positiveSign ? product >= 0 : product <= 0) {
+    const directPathCheckCounterClockwise = this.isDirectPathPossible(
+      p1,
+      p2,
+      initialClosestIndex,
+      isPositiveSign,
+      false,
+    );
+    if (directPathCheckCounterClockwise.isPossible) {
       return [p1, p2];
     }
 
-    if (
-      Point.calculateDistance(p1, p2) <= Point.calculateDistance(p1, points[j])
-    ) {
-      product = Point.calculateVectorProduct(p1, p2, p1, points[i]);
-      if (positiveSign ? product >= 0 : product <= 0) {
-        return [p1, p2];
-      }
-    }
+    const closestClockwiseIndex =
+      directPathCheckClockwise.closestVertexIndex as number;
+    const closestCounterClockwiseIndex =
+      directPathCheckCounterClockwise.closestVertexIndex as number;
 
-    let secondWayStartIx = j;
-    let secondWayLastIx;
-    let secondWayLength = Point.calculateDistance(p1, points[j]);
-
-    while (true) {
-      product = Point.calculateVectorProduct(
-        points[j],
-        p2,
-        points[j],
-        points[ixMinus(j, 1)],
-      );
-      if (positiveSign ? product <= 0 : product >= 0) {
-        secondWayLength += Point.calculateDistance(points[j], p2);
-        secondWayLastIx = j;
-        break;
-      } else {
-        if (j !== 0) {
-          secondWayLength += Point.calculateDistance(points[j], points[j - 1]);
-        }
-        j = ixMinus(j, 1);
-      }
-    }
+    const clockwisePathCheck = this.findPath(
+      p1,
+      p2,
+      closestClockwiseIndex,
+      isPositiveSign,
+      true,
+    );
+    const counterClockwisePathCheck = this.findPath(
+      p1,
+      p2,
+      closestCounterClockwiseIndex,
+      isPositiveSign,
+      false,
+    );
 
     const result = [p1];
-    const isFirstWayShorter = secondWayLength > firstWayLength;
+    const isClockwiseWayShorter =
+      clockwisePathCheck.distance < counterClockwisePathCheck.distance;
+
+    const startIndex = (
+      isClockwiseWayShorter ? clockwisePathCheck : counterClockwisePathCheck
+    ).startIndex;
+
+    const finishIndex = (
+      isClockwiseWayShorter ? clockwisePathCheck : counterClockwisePathCheck
+    ).finishIndex;
+
+    for (
+      let i = startIndex;
+      i !== finishIndex;
+      i = this.getVertexIndex(i, 1, isClockwiseWayShorter)
+    ) {
+      result.push(points[i]);
+    }
+
+    return [...result, points[finishIndex], p2];
+  }
+
+  findPath(
+    p1: Point,
+    p2: Point,
+    closestIndex: number,
+    isPositiveSign: boolean,
+    clockwise: boolean,
+  ) {
+    const points = this.points;
+    const startIndex = closestIndex;
+    let finishIndex = closestIndex;
+    let currentIndex = closestIndex;
+    let distance = Point.calculateDistance(p1, points[closestIndex]);
+    let product;
 
     while (true) {
-      result.push(
-        points[isFirstWayShorter ? firstWayStartIx : secondWayStartIx],
+      const nextIndex = this.getVertexIndex(currentIndex, 1, clockwise);
+      product = Point.calculateVectorProduct(
+        points[currentIndex],
+        p2,
+        points[currentIndex],
+        points[nextIndex],
+      );
+      if (isPositiveSign ? product >= 0 : product <= 0) {
+        distance += Point.calculateDistance(points[currentIndex], p2);
+        finishIndex = currentIndex;
+        break;
+      } else {
+        if (currentIndex !== (clockwise ? points.length - 1 : 0)) {
+          distance += Point.calculateDistance(
+            points[currentIndex],
+            points[nextIndex],
+          );
+        }
+        currentIndex = nextIndex;
+      }
+    }
+
+    return { startIndex, finishIndex, distance };
+  }
+
+  isDirectPathPossible(
+    p1: Point,
+    p2: Point,
+    initialClosestIndex: number,
+    isPositiveSign: boolean,
+    clockwise: boolean,
+  ): { isPossible: boolean; closestVertexIndex?: number } {
+    let product;
+    const points = this.points;
+
+    let closestIndex = initialClosestIndex;
+    while (true) {
+      const nextIndex = this.getVertexIndex(closestIndex, 1, clockwise);
+      product = Point.calculateVectorProduct(
+        p1,
+        points[closestIndex],
+        points[closestIndex],
+        points[nextIndex],
       );
 
       if (
-        isFirstWayShorter
-          ? firstWayStartIx === firstWayLastIx
-          : secondWayStartIx === secondWayLastIx
+        (isPositiveSign && (clockwise ? product > 0 : product < 0)) ||
+        (!isPositiveSign && (clockwise ? product < 0 : product > 0))
       ) {
-        return [...result, p2];
-      }
-
-      if (isFirstWayShorter) {
-        firstWayStartIx = ixPlus(firstWayStartIx, 1);
+        break;
       } else {
-        secondWayStartIx = ixMinus(secondWayStartIx, 1);
+        closestIndex = nextIndex;
       }
     }
+
+    product = Point.calculateVectorProduct(
+      p1,
+      points[closestIndex],
+      points[closestIndex],
+      p2,
+    );
+
+    if (
+      (isPositiveSign && (clockwise ? product <= 0 : product >= 0)) ||
+      (!isPositiveSign && (clockwise ? product >= 0 : product <= 0))
+    ) {
+      return { isPossible: true };
+    }
+
+    if (
+      Point.calculateDistance(p1, p2) <=
+      Point.calculateDistance(p1, points[closestIndex])
+    ) {
+      product = Point.calculateVectorProduct(
+        p1,
+        p2,
+        p1,
+        points[initialClosestIndex],
+      );
+      if (
+        (isPositiveSign && (clockwise ? product <= 0 : product >= 0)) ||
+        (!isPositiveSign && (clockwise ? product >= 0 : product <= 0))
+      ) {
+        return { isPossible: true };
+      }
+    }
+
+    return { isPossible: false, closestVertexIndex: closestIndex };
   }
 
   isPointInternal(point: Point): { isInternal: boolean; closestIndex: number } {
@@ -228,5 +264,17 @@ export class ConvexPolygon {
       closestMinusPoint.calculatePointLineRelation(line2);
 
     return { isInternal: b1 > 0 && b2 > 0, closestIndex };
+  }
+
+  getVertexIndex(
+    currentIndex: number,
+    offset: number,
+    clockwise: boolean,
+  ): number {
+    if (clockwise) {
+      return (currentIndex + offset) % this.points.length;
+    } else {
+      return (currentIndex - offset + this.points.length) % this.points.length;
+    }
   }
 }
