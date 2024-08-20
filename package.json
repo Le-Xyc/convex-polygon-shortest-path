@@ -1,7 +1,6 @@
 {
-  "name": "node-typescript-starter",
+  "name": "convex-polygon-shortest-path",
   "version": "1.0.0",
-  "description": "Node.js TypeScript starter repository",
   "private": true,
   "license": "MIT",
   "scripts": {
