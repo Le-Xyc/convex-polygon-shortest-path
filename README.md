@@ -4,7 +4,7 @@ A TypeScript program designed to find the shortest path between two points locat
 
 ## Description
 
-For a detailed description of the task and the project's goals, see TASK.md.
+For a detailed description of the task and the project's goals, see `TASK.md`.
 
 ## Installation
 
@@ -31,10 +31,3 @@ $ npm run start:prod
 ## Input and Output
 
 The application reads from data/input.txt and writes to data/output.txt. Ensure that input file is present in the data directory within the root of the project.
-
-## Test
-
-```bash
-# e2e tests
-$ npm run test:e2e
-```
